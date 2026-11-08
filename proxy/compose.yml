@@ -1,0 +1,35 @@
+name: sw_infra
+services:
+  traefik:
+    image: traefik:v3.7
+    container_name: traefik_proxy
+    restart: unless-stopped
+    command:
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=${NETWORK_NAME:-sw_infra_net}
+      - --entrypoints.web.address=:80
+      - --log.level=INFO
+    ports:
+      - "80:80" # HTTP Entry Point
+      - "8080:8080" # Traefik Dashboard
+    environment:
+      - TZ=${TZ:-UTC}
+    volumes:
+      # Allow Traefik to listen to Docker events and auto-discover containers
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - sw_infra_net
+    labels:
+      # Enable Traefik Dashboard routing
+      - "traefik.enable=true"
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DOMAIN}`)"
+      - "traefik.http.routers.dashboard.entrypoints=web"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      # Optional: Basic Auth for Dashboard can be added here later for production
+
+networks:
+  sw_infra_net:
+    external: true
+    name: ${NETWORK_NAME:-sw_infra_net}

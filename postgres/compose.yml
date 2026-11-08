@@ -1,0 +1,51 @@
+name: sw_infra
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: postgres
+    restart: unless-stopped
+
+    environment:
+      TZ: ${TZ:-UTC}
+      POSTGRES_USER: ${POSTGRES_ADMIN_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD}
+
+      # Read by the init SQL (01-create-app-databases.sql) via \getenv
+      GITEA_DB_NAME: ${GITEA_DB_NAME}
+      GITEA_DB_USER: ${GITEA_DB_USER}
+      GITEA_DB_PASSWORD: ${GITEA_DB_PASSWORD}
+
+      SONAR_DB_NAME: ${SONAR_DB_NAME}
+      SONAR_DB_USER: ${SONAR_DB_USER}
+      SONAR_DB_PASSWORD: ${SONAR_DB_PASSWORD}
+
+    volumes:
+      # PostgreSQL 18+ images moved the VOLUME to /var/lib/postgresql
+      # (PGDATA is now /var/lib/postgresql/18/docker). Do not mount /var/lib/postgresql/data.
+      - sw_infra_postgres_data:/var/lib/postgresql
+      - ./init-scripts:/docker-entrypoint-initdb.d:ro
+
+    networks:
+      - sw_infra_net
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          pg_isready -U ${POSTGRES_ADMIN_USER} -d postgres && psql -U ${POSTGRES_ADMIN_USER} -d ${GITEA_DB_NAME} -tAc 'SELECT 1' >/dev/null && psql -U ${POSTGRES_ADMIN_USER} -d ${SONAR_DB_NAME} -tAc 'SELECT 1' >/dev/null
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+    mem_limit: 512m
+
+volumes:
+  sw_infra_postgres_data:
+    name: sw_infra_postgres_data
+
+networks:
+  sw_infra_net:
+    external: true
+    name: ${NETWORK_NAME:-sw_infra_net}

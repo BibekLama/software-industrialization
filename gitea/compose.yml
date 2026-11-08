@@ -1,0 +1,68 @@
+name: sw_infra
+
+services:
+  gitea:
+    image: gitea/gitea:1.22
+    container_name: gitea
+    restart: unless-stopped
+
+    environment:
+      TZ: ${TZ:-UTC}
+
+      USER_UID: "1000"
+      USER_GID: "1000"
+
+      # Database configuration
+      GITEA__database__DB_TYPE: postgres
+      GITEA__database__HOST: ${GITEA_DB_HOST}:${GITEA_DB_PORT}
+      GITEA__database__NAME: ${GITEA_DB_NAME}
+      GITEA__database__USER: ${GITEA_DB_USER}
+      GITEA__database__PASSWD: ${GITEA_DB_PASSWORD}
+
+      # Web configuration
+      GITEA__server__DOMAIN: ${GITEA_DOMAIN}
+      GITEA__server__ROOT_URL: http://${GITEA_DOMAIN}/
+      GITEA__server__HTTP_PORT: "3000"
+
+      # SSH configuration
+      GITEA__server__SSH_DOMAIN: ${GITEA_DOMAIN}
+      GITEA__server__SSH_PORT: ${GITEA_SSH_HOST_PORT}
+      GITEA__server__SSH_LISTEN_PORT: "22"
+
+      # Initial setup behavior
+      GITEA__service__DISABLE_REGISTRATION: "false"
+
+    volumes:
+      - sw_infra_gitea_data:/data
+
+    ports:
+      - "${GITEA_SSH_HOST_PORT:-2222}:22"
+
+    networks:
+      - sw_infra_net
+
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.gitea.rule=Host(`${GITEA_DOMAIN}`)"
+      - "traefik.http.routers.gitea.entrypoints=web"
+      - "traefik.http.services.gitea.loadbalancer.server.port=3000"
+
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - wget -q --spider http://localhost:3000/api/healthz || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+    mem_limit: 512m
+
+volumes:
+  sw_infra_gitea_data:
+    name: sw_infra_gitea_data
+
+networks:
+  sw_infra_net:
+    external: true
+    name: ${NETWORK_NAME:-sw_infra_net}

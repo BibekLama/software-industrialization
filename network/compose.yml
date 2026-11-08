@@ -1,0 +1,6 @@
+name: sw_infra
+
+networks:
+  sw_infra_net:
+    name: ${NETWORK_NAME:-sw_infra_net}
+    driver: bridge

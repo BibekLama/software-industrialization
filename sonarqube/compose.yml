@@ -1,0 +1,45 @@
+name: sw_infra
+services:
+  sonarqube:
+    image: sonarqube
+    container_name: sonarqube
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-UTC}
+      SONAR_JDBC_URL: jdbc:postgresql://postgres:5432/sonardb
+      SONAR_JDBC_USERNAME: ${SONAR_DB_USER}
+      SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD}
+      SONAR_WEB_JAVAADDITIONALOPTS: "-Xmx1024m" # Restrict internal JVM heap
+    volumes:
+      - sw_infra_sonarqube_data:/opt/sonarqube/data
+      - sw_infra_sonarqube_extensions:/opt/sonarqube/extensions
+      - sw_infra_sonarqube_logs:/opt/sonarqube/logs
+    networks:
+      - sw_infra_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.sonarqube.rule=Host(`${SONAR_DOMAIN}`)"
+      - "traefik.http.routers.sonarqube.entrypoints=web"
+      - "traefik.http.services.sonarqube.loadbalancer.server.port=9000"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -f http://localhost:9000/api/system/status || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s # Increased to 2 minutes for slow first boots
+    mem_limit: 1536m # 1.5 GB
+
+volumes:
+  sw_infra_sonarqube_data:
+    name: sw_infra_sonarqube_data
+  sw_infra_sonarqube_extensions:
+    name: sw_infra_sonarqube_extensions
+  sw_infra_sonarqube_logs:
+    name: sw_infra_sonarqube_logs
+
+networks:
+  sw_infra_net:
+    external: true
+    name: ${NETWORK_NAME:-sw_infra_net}

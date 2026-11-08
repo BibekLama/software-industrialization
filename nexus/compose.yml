@@ -1,0 +1,36 @@
+name: sw_infra
+services:
+  nexus:
+    image: sonatype/nexus3
+    container_name: nexus
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-UTC}
+      INSTALL4J_ADD_VM_PARAMS: "-Xms256m -Xmx768m" # Restrict internal JVM heap
+    volumes:
+      - sw_infra_nexus_data:/nexus-data
+    networks:
+      - sw_infra_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.nexus.rule=Host(`${NEXUS_DOMAIN}`)"
+      - "traefik.http.routers.nexus.entrypoints=web"
+      - "traefik.http.services.nexus.loadbalancer.server.port=8081"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -f http://localhost:8081/service/rest/v1/status || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    mem_limit: 1228m # 1.2 GB
+
+volumes:
+  sw_infra_nexus_data:
+    name: sw_infra_nexus_data
+
+networks:
+  sw_infra_net:
+    external: true
+    name: ${NETWORK_NAME:-sw_infra_net}

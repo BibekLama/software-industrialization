@@ -1,0 +1,38 @@
+name: sw_infra
+services:
+  jenkins:
+    image: jenkins/jenkins:lts
+    container_name: jenkins
+    restart: unless-stopped
+    environment:
+      TZ: ${TZ:-UTC}
+      JAVA_OPTS: "-Xms512m -Xmx1024m" # Restrict internal JVM heap
+    volumes:
+      - sw_infra_jenkins_data:/var/jenkins_home
+      # Optional: Mount docker socket if Jenkins needs to build Docker images
+      # - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - sw_infra_net
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.jenkins.rule=Host(`${JENKINS_DOMAIN}`)"
+      - "traefik.http.routers.jenkins.entrypoints=web"
+      - "traefik.http.services.jenkins.loadbalancer.server.port=8080"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl -f http://localhost:8080/login || exit 1
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    mem_limit: 1536m # 1.5 GB
+
+volumes:
+  sw_infra_jenkins_data:
+    name: sw_infra_jenkins_data
+
+networks:
+  sw_infra_net:
+    external: true
+    name: ${NETWORK_NAME:-sw_infra_net}

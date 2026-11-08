@@ -7,6 +7,9 @@ PROXY        := $(COMPOSE) -f proxy/compose.yml
 POSTGRES     := $(COMPOSE) -f postgres/compose.yml
 PGADMIN      := $(COMPOSE) -f pgadmin/compose.yml
 GITEA        := $(COMPOSE) -f gitea/compose.yml
+SONAR     := $(COMPOSE) -f sonarqube/compose.yml
+NEXUS     := $(COMPOSE) -f nexus/compose.yml
+JENKINS   := $(COMPOSE) -f jenkins/compose.yml
 
 .DEFAULT_GOAL := help
 .NOTPARALLEL:
@@ -19,6 +22,10 @@ GITEA        := $(COMPOSE) -f gitea/compose.yml
         pgadmin-up pgadmin-down pgadmin-restart pgadmin-logs pgadmin-ps pgadmin-config \
         gitea-up gitea-down gitea-restart gitea-logs gitea-ps gitea-config \
         gitea-admin-create
+		sonar-up sonar-down sonar-restart sonar-logs sonar-ps sonar-config \
+        nexus-up nexus-down nexus-restart nexus-logs nexus-ps nexus-config \
+        jenkins-up jenkins-down jenkins-restart jenkins-logs jenkins-ps jenkins-config
+
 
 help:
 	@echo "Stack"
@@ -46,11 +53,21 @@ help:
 	@echo "Gitea"
 	@echo "  make gitea-up|down|restart|logs|ps|config"
 	@echo "  make gitea-admin-create  Create admin user from .env"
+	@echo ""
+	@echo "SonarQube"
+	@echo "  make sonar-up | sonar-down | sonar-restart | sonar-logs | sonar-ps | sonar-config"
+	@echo ""
+	@echo "Nexus"
+	@echo "  make nexus-up | nexus-down | nexus-restart | nexus-logs | nexus-ps | nexus-config"
+	@echo ""
+	@echo "Jenkins"
+	@echo "  make jenkins-up | jenkins-down | jenkins-restart | jenkins-logs | jenkins-ps | jenkins-config"
+
 
 # ---------- Stack ----------
-up: proxy-up postgres-up pgadmin-up gitea-up
+up: proxy-up postgres-up pgadmin-up gitea-up sonar-up nexus-up jenkins-up
 
-down: gitea-down pgadmin-down postgres-down proxy-down network-remove
+down: jenkins-down nexus-down sonar-down gitea-down pgadmin-down postgres-down proxy-down network-remove
 
 status:
 	@docker ps --filter network=$(NETWORK_NAME) --format 'table {{.Names}}\t{{.Status}}'
@@ -155,3 +172,45 @@ gitea-admin-create:
 	@$(GITEA) exec -T --user git gitea gitea admin user create \
 		--admin --username "$(GITEA_ADMIN_USER)" --password "$(GITEA_ADMIN_PASSWORD)" \
 		--email "$(GITEA_ADMIN_EMAIL)" --must-change-password=false
+
+# ---------- SonarQube ----------
+sonar-up: network-create
+	@$(SONAR) up -d --wait
+sonar-down:
+	@$(SONAR) down
+sonar-restart:
+	@$(SONAR) restart
+sonar-logs:
+	@$(SONAR) logs -f --tail=100
+sonar-ps:
+	@$(SONAR) ps
+sonar-config:
+	@$(SONAR) config
+
+# ---------- Nexus ----------
+nexus-up: network-create
+	@$(NEXUS) up -d --wait
+nexus-down:
+	@$(NEXUS) down
+nexus-restart:
+	@$(NEXUS) restart
+nexus-logs:
+	@$(NEXUS) logs -f --tail=100
+nexus-ps:
+	@$(NEXUS) ps
+nexus-config:
+	@$(NEXUS) config
+
+# ---------- Jenkins ----------
+jenkins-up: network-create
+	@$(JENKINS) up -d --wait
+jenkins-down:
+	@$(JENKINS) down
+jenkins-restart:
+	@$(JENKINS) restart
+jenkins-logs:
+	@$(JENKINS) logs -f --tail=100
+jenkins-ps:
+	@$(JENKINS) ps
+jenkins-config:
+	@$(JENKINS) config

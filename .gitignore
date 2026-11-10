@@ -1,3 +1,4 @@
 /docs/*
 .env
 software-factory-todo/backend/node_modules/
+software-factory-todo/backend/.env

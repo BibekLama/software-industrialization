@@ -1,7 +1,9 @@
 name: sw_infra
 services:
   jenkins:
-    image: jenkins/jenkins:lts
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: jenkins
     restart: unless-stopped
     environment:
@@ -10,7 +12,7 @@ services:
     volumes:
       - sw_infra_jenkins_data:/var/jenkins_home
       # Optional: Mount docker socket if Jenkins needs to build Docker images
-      # - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
       - sw_infra_net
     labels:

@@ -10,7 +10,7 @@ This project implements a complete Software Factory with version control, CI/CD 
 
 The original software industrialization document provided a foundational approach designed for demonstration and lab environments. This project presents an alternative, production-ready architecture that builds upon those core concepts using modern containerization and orchestration practices.
 
-> 📄 **Reference:** For the original context and demonstration setup, please refer to the [Original Software Industrialization Document](./software-industrialization.pdf) *(please update this path to match your actual file location)*.
+> 📄 **Reference:** For the original context and demonstration setup, please refer to the [Original Software Industrialization Document](https://www.slideshare.net/slideshow/software-industrialization/237380850) *(please update this path to match your actual file location)*.
 
 ### Approach Comparison
 
